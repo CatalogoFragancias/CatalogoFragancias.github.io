@@ -131,20 +131,21 @@
 
 <div class="container">
     <div class="menu-wrap">
-        <button class="menu-toggle" onclick="toggleMenu(event)" aria-label="Menú">⋮</button>
+        <button class="menu-toggle" onclick="pedirPin(event)" aria-label="Menú">⋮</button>
         <div class="menu-dropdown" id="menuDropdown">
             <button class="menu-item" onclick="cerrarMenu(); document.getElementById('txtInput').click()">📄 Actualizar catálogo (TXT)</button>
             <button class="menu-item" onclick="cerrarMenu(); descargarTXT()">⬇ Descargar TXT actual</button>
             <button class="menu-item" onclick="cerrarMenu(); buscarActualizacion(true)">🔄 Buscar actualización ahora</button>
             <button class="menu-item" onclick="cerrarMenu(); restaurarCatalogo()">↺ Restaurar original</button>
             <div class="menu-sep"></div>
+            <button class="menu-item" onclick="cerrarMenu(); abrirPrecios()">💲 Cambiar precios</button>
             <button class="menu-item" onclick="cerrarMenu(); abrirConfig()">⚙ Configuración</button>
         </div>
         <input type="file" id="txtInput" accept=".txt,text/plain" style="display:none" onchange="cargarTXT(event)">
     </div>
     <div class="header-title">
         <h1>Fragancias</h1>
-        <h3>Mayorista de fragancias premium 2026</h3>
+        <h3>Fragancias Premium</h3>
     </div>
     
     <div class="filters-container">
@@ -200,7 +201,7 @@
                 <span id="subtotalDisplay">$0</span>
             </div>
             <div class="summary-line promo" id="promoLine">
-                <span>Descuento aplicado (Promo 2x $50.000):</span> 
+                <span id="promoLabel">Descuento aplicado (Promo 2x $50.000):</span> 
                 <span id="discountDisplay">-$0</span>
             </div>
             <div class="summary-line total">
@@ -219,6 +220,40 @@
         <button class="btn-whatsapp" onclick="enviarPorWhatsApp()" id="btnWsp" style="display:none;">
             Enviar pedido por WhatsApp
         </button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="pinModal" onclick="if(event.target.id==='pinModal') cerrarPin()">
+    <div class="modal-content" style="max-width:320px; text-align:center;">
+        <div class="modal-header">
+            <h2 style="font-size:1.1rem;">🔒 Ingresá el PIN</h2>
+            <button class="close-btn" onclick="cerrarPin()">×</button>
+        </div>
+        <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••"
+               style="width:100%; box-sizing:border-box; text-align:center; font-size:28px; letter-spacing:12px; padding:10px; border:1px solid #c9c4bb; border-radius:6px;"
+               oninput="this.value=this.value.replace(/\D/g,''); if(this.value.length===4) verificarPin();">
+        <div id="pinError" style="color:#b00020; font-size:0.85rem; margin-top:10px; min-height:1.2em;"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="preciosModal" onclick="if(event.target.id==='preciosModal') cerrarPrecios()">
+    <div class="modal-content" style="max-width:380px;">
+        <div class="modal-header">
+            <h2>Precios</h2>
+            <button class="close-btn" onclick="cerrarPrecios()">×</button>
+        </div>
+        <div class="config-field">
+            <label for="precio1"><strong>Precio de 1 perfume ($)</strong></label>
+            <input type="tel" id="precio1" inputmode="numeric" placeholder="30000">
+            <label for="precio2"><strong>Precio de 2 perfumes ($)</strong></label>
+            <input type="tel" id="precio2" inputmode="numeric" placeholder="50000">
+            <small>Los pedidos de más unidades se cobran de a pares al precio de 2, y el que sobra al precio de 1.</small>
+            <small><strong>Importante:</strong> el cambio vale en este teléfono. Para que lo vean todos los clientes, descargá el TXT (menú ⋮) y reemplazalo en Dropbox.</small>
+        </div>
+        <div class="config-actions">
+            <button class="config-cancel" onclick="cerrarPrecios()">Cancelar</button>
+            <button class="config-save" onclick="guardarPrecios()">Guardar</button>
+        </div>
     </div>
 </div>
 
@@ -271,8 +306,14 @@
     try { numeroWhatsApp = localStorage.getItem(WSP_KEY) || WSP_POR_DEFECTO; } catch (e) {}
     
     // Regla de precios
-    const PRECIO_1 = 30000;
-    const PRECIO_2 = 50000;
+    let PRECIO_1 = 30000;   // precio de 1 perfume
+    let PRECIO_2 = 50000;   // precio de 2 perfumes (promo)
+    const PRECIOS_KEY = 'catalogoFraganciasOnline_precios';
+    try {
+        const pg = JSON.parse(localStorage.getItem(PRECIOS_KEY) || 'null');
+        if (pg && pg.p1 > 0 && pg.p2 > 0) { PRECIO_1 = pg.p1; PRECIO_2 = pg.p2; }
+    } catch (e) {}
+    const PIN_CORRECTO = "2998";
     // ==========================================
 
     const rawData = [
@@ -829,17 +870,23 @@
     function parsearTXT(texto) {
         const resultado = [];
         const errores = [];
+        let precios = null;
         texto.replace(/^\uFEFF/, '').split(/\r?\n/).forEach((linea, i) => {
             linea = linea.trim();
             if (!linea || linea.startsWith('#')) return;
             const sep = linea.includes('|') ? '|' : (linea.includes('\t') ? '\t' : ';');
             const p = linea.split(sep).map(x => x.trim().replace(/^"|"$/g, ''));
-            if (i === 0 && /^marca$/i.test(p[0]) && /categor/i.test(p[2] || '')) return; // encabezado
+            if (/^precios$/i.test(p[0])) {
+                const a = parseInt(String(p[1]).replace(/\D/g, ''), 10), b = parseInt(String(p[2]).replace(/\D/g, ''), 10);
+                if (a > 0 && b > 0) precios = { p1: a, p2: b };
+                return;
+            }
+            if (/^marca$/i.test(p[0]) && /categor/i.test(p[2] || '')) return; // encabezado
             if (p.length < 3 || !p[0] || !p[1] || !p[2]) { errores.push(i + 1); return; }
             const foto = /^(https?:\/\/|data:image\/)/i.test(p[3] || '') ? p[3] : '';
             resultado.push(p[0] + '|' + p[1] + '|' + p[2] + (foto ? '|' + foto : ''));
         });
-        return { lineas: resultado, errores };
+        return { lineas: resultado, errores, precios };
     }
 
     function mostrarEstado(msg, tipo) {
@@ -906,6 +953,56 @@
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         filterTable();
+    }
+
+    // ---------- PIN de acceso al menú ----------
+    let intentosPin = 0, bloqueoPin = 0;
+    function pedirPin(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('menuDropdown');
+        if (menu.classList.contains('open')) { cerrarMenu(); return; }
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinError').textContent = '';
+        document.getElementById('pinModal').style.display = 'flex';
+        setTimeout(function () { try { document.getElementById('pinInput').focus(); } catch (x) {} }, 100);
+    }
+    function cerrarPin() { document.getElementById('pinModal').style.display = 'none'; }
+    function verificarPin() {
+        const input = document.getElementById('pinInput');
+        const err = document.getElementById('pinError');
+        const ahora = Date.now();
+        if (ahora < bloqueoPin) {
+            err.textContent = 'Demasiados intentos. Esperá ' + Math.ceil((bloqueoPin - ahora) / 1000) + ' segundos.';
+            input.value = '';
+            return;
+        }
+        if (input.value === PIN_CORRECTO) {
+            intentosPin = 0;
+            cerrarPin();
+            document.getElementById('menuDropdown').classList.add('open');
+        } else {
+            intentosPin++;
+            input.value = '';
+            if (intentosPin >= 5) { bloqueoPin = ahora + 30000; intentosPin = 0; err.textContent = 'Demasiados intentos. Esperá 30 segundos.'; }
+            else err.textContent = 'PIN incorrecto.';
+        }
+    }
+
+    // ---------- Cambiar precios ----------
+    function abrirPrecios() {
+        document.getElementById('precio1').value = PRECIO_1;
+        document.getElementById('precio2').value = PRECIO_2;
+        document.getElementById('preciosModal').style.display = 'flex';
+    }
+    function cerrarPrecios() { document.getElementById('preciosModal').style.display = 'none'; }
+    function guardarPrecios() {
+        const a = parseInt(document.getElementById('precio1').value.replace(/\D/g, ''), 10);
+        const b = parseInt(document.getElementById('precio2').value.replace(/\D/g, ''), 10);
+        if (!(a > 0) || !(b > 0)) { alert('Ingresá los dos precios, solo con números.'); return; }
+        if (b >= a * 2) { if (!confirm('El precio de 2 perfumes no es menor que el doble del de 1, así que no habría descuento. ¿Guardar igual?')) return; }
+        fijarPrecios(a, b, true);
+        cerrarPrecios();
+        mostrarEstado('✔ Precios actualizados: 1 x ' + formateadorMoneda.format(a) + ' / 2 x ' + formateadorMoneda.format(b) + '. Descargá el TXT para publicarlos a todos.', 'ok');
     }
 
     function toggleMenu(e) {
@@ -1078,6 +1175,12 @@
         return lista;
     }
 
+    function fijarPrecios(p1, p2, guardar) {
+        PRECIO_1 = p1; PRECIO_2 = p2;
+        if (guardar) { try { localStorage.setItem(PRECIOS_KEY, JSON.stringify({ p1: p1, p2: p2 })); } catch (e) {} }
+        actualizarUI();
+    }
+
     function aplicarCatalogo(lineas) {
         sortedData = construirDatos(lineas);
         usandoPersonalizado = true;
@@ -1115,7 +1218,14 @@
                     const clave = function (i) { return i.marca + '|' + i.perfume + '|' + i.categoria + '|' + (i.foto || ''); };
                     const actual = sortedData.map(clave).sort().join('\n');
                     const nuevo = construirDatos(res.lineas).map(clave).sort().join('\n');
-                    if (actual !== nuevo) {
+                    let preciosCambiaron = false;
+                    if (res.precios && (res.precios.p1 !== PRECIO_1 || res.precios.p2 !== PRECIO_2)) {
+                        fijarPrecios(res.precios.p1, res.precios.p2, true);
+                        preciosCambiaron = true;
+                    }
+                    if (preciosCambiaron && actual === nuevo) {
+                        mostrarEstado('✔ Precios actualizados.', 'ok');
+                    } else if (actual !== nuevo) {
                         aplicarCatalogo(res.lineas);
                         mostrarEstado('✔ Catálogo actualizado: ' + res.lineas.length + ' fragancias.', 'ok');
                     } else if (manual) {
@@ -1136,11 +1246,12 @@
         const lector = new FileReader();
         lector.onload = () => {
             let texto = decodificarTexto(lector.result);
-            const { lineas, errores } = parsearTXT(texto);
+            const { lineas, errores, precios } = parsearTXT(texto);
             if (!lineas.length) {
                 mostrarEstado('No se encontraron filas válidas. Formato: Marca|Fragancia|Categoría', 'error');
                 return;
             }
+            if (precios) fijarPrecios(precios.p1, precios.p2, true);
             sortedData = construirDatos(lineas);
             usandoPersonalizado = true;
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(lineas)); } catch (e) {}
@@ -1157,7 +1268,7 @@
     }
 
     function descargarTXT() {
-        const contenido = sortedData.map(i => i.marca + '|' + i.perfume + '|' + i.categoria + '|' + (i.foto || '')).join('\r\n');
+        const contenido = 'PRECIOS|' + PRECIO_1 + '|' + PRECIO_2 + '\r\n' + sortedData.map(i => i.marca + '|' + i.perfume + '|' + i.categoria + '|' + (i.foto || '')).join('\r\n');
         const blob = new Blob(['\uFEFF' + contenido], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -1276,6 +1387,7 @@
             document.getElementById('promoLine').style.display = 'none';
         }
 
+        document.getElementById('promoLabel').innerText = 'Descuento aplicado (Promo 2x ' + formateadorMoneda.format(PRECIO_2) + '):';
         document.getElementById('qtyTotalResumen').innerText = totalItems;
         document.getElementById('subtotalDisplay').innerText = formateadorMoneda.format(subtotal);
         document.getElementById('discountDisplay').innerText = "-" + formateadorMoneda.format(descuento);
@@ -1324,7 +1436,7 @@
         texto += `\n*TOTAL A PAGAR: ${formateadorMoneda.format(finalTotalToPay)}*\n`;
         
         if (descuento > 0) {
-            texto += `_(Incluye descuento por Promo 2x $50.000)_\n`;
+            texto += `_(Incluye descuento por Promo 2x ${formateadorMoneda.format(PRECIO_2)})_\n`;
         }
         
         texto += "\n¡Muchas gracias!";
