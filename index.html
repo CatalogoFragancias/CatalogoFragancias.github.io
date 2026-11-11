@@ -933,6 +933,7 @@
         data.forEach((item, index) => {
             const tr = document.createElement('tr');
             const safeMarca = esc(item.marca.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+            const safeCat = esc(item.categoria.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
             const safePerfume = esc(item.perfume.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
             const urlFoto = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(item.marca + ' ' + item.perfume + ' perfume');
             
@@ -944,7 +945,7 @@
                 </td>
                 <td><span class="category-badge">${esc(item.categoria)}</span></td>
                 <td>
-                    <button class="btn-add" onclick="agregarAlCarrito('${safeMarca}', '${safePerfume}')">
+                    <button class="btn-add" onclick="agregarAlCarrito('${safeMarca}', '${safePerfume}', '${safeCat}')">
                         + Agregar
                     </button>
                 </td>
@@ -1312,12 +1313,25 @@
         renderTable(filteredData);
     }
 
-    function agregarAlCarrito(marca, perfume) {
-        const itemExistente = cart.find(i => i.marca === marca && i.perfume === perfume);
+    // Convierte la categoría en una etiqueta clara para el pedido: Femenino / Masculino / Unisex
+    function etiquetaGenero(categoria) {
+        const c = String(categoria || '').toLowerCase();
+        if (!c) return '';
+        let g = '';
+        if (c.indexOf('femen') !== -1) g = 'Femenino';
+        else if (c.indexOf('mascul') !== -1) g = 'Masculino';
+        else if (c.indexOf('unisex') !== -1) g = 'Unisex';
+        else return categoria;
+        return (c.indexOf('árabe') !== -1 || c.indexOf('arabe') !== -1) ? 'Árabe ' + g : g;
+    }
+
+    function agregarAlCarrito(marca, perfume, categoria) {
+        categoria = categoria || '';
+        const itemExistente = cart.find(i => i.marca === marca && i.perfume === perfume && (i.categoria || '') === categoria);
         if (itemExistente) {
             itemExistente.cantidad++;
         } else {
-            cart.push({ marca: marca, perfume: perfume, cantidad: 1 });
+            cart.push({ marca: marca, perfume: perfume, categoria: categoria, cantidad: 1 });
         }
         actualizarUI();
     }
@@ -1364,7 +1378,7 @@
                 itemDiv.innerHTML = `
                     <div class="cart-item-info">
                         <div class="cart-item-title">${esc(item.perfume)}</div>
-                        <div class="cart-item-brand">${esc(item.marca)}</div>
+                        <div class="cart-item-brand">${esc(item.marca)}${item.categoria ? ' · ' + esc(etiquetaGenero(item.categoria)) : ''}</div>
                     </div>
                     <div class="cart-controls">
                         <button class="qty-btn" onclick="modificarCantidad(${index}, -1)">-</button>
@@ -1432,7 +1446,7 @@
 
         texto += "*PEDIDO:*\n";
         cart.forEach(item => {
-            texto += `▫️ ${item.cantidad}x ${item.marca} - ${item.perfume}\n`;
+            texto += `▫️ ${item.cantidad}x ${item.marca} - ${item.perfume}${item.categoria ? ' (' + etiquetaGenero(item.categoria) + ')' : ''}\n`;
         });
         
         const subtotal = cantidadTotal * PRECIO_1;
