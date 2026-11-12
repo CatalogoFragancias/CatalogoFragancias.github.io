@@ -272,11 +272,6 @@
             <input type="tel" id="cfgWhatsApp" inputmode="numeric" placeholder="5492216418078">
             <small>Con código de país y sin +, espacios ni guiones. Ej: 5492216418078</small>
         </div>
-        <div class="config-field">
-            <label for="cfgUrl"><strong>Link del TXT para actualizar (opcional)</strong></label>
-            <input type="url" id="cfgUrl" placeholder="https://1drv.ms/t/... o https://..." autocomplete="off" autocapitalize="off">
-            <small>Link para compartir del TXT (cualquier persona con el link puede ver). El catálogo lo busca cada vez que se abre.</small>
-        </div>
         <div class="config-actions">
             <button class="config-cancel" onclick="cerrarConfig()">Cancelar</button>
             <button class="config-save" onclick="guardarConfig()">Guardar</button>
@@ -1025,7 +1020,6 @@
 
     function abrirConfig() {
         document.getElementById('cfgWhatsApp').value = numeroWhatsApp;
-        document.getElementById('cfgUrl').value = obtenerUrlActualizacion();
         document.getElementById('configModal').style.display = 'flex';
     }
     function cerrarConfig() { document.getElementById('configModal').style.display = 'none'; }
@@ -1035,19 +1029,12 @@
             alert('Ingresá un número válido con código de país (entre 10 y 15 dígitos). Ej: 5492216418078');
             return;
         }
-        const url = document.getElementById('cfgUrl').value.trim();
-        if (url && url !== URL_ACTUALIZACION && !/^https:\/\//i.test(url)) {
-            alert('El link de actualización tiene que empezar con https://');
-            return;
-        }
         numeroWhatsApp = num;
         try {
             localStorage.setItem(WSP_KEY, num);
-            if (url && url !== URL_ACTUALIZACION) localStorage.setItem(UPD_KEY, url); else localStorage.removeItem(UPD_KEY);
         } catch (e) {}
         cerrarConfig();
-        mostrarEstado('✔ Configuración guardada.', 'ok');
-        if (url) buscarActualizacion(true);
+        mostrarEstado('✔ Número de WhatsApp guardado.', 'ok');
     }
 
     // --- Ver foto: compatible con navegadores internos (WhatsApp, visores de archivos, etc.) ---
@@ -1131,9 +1118,9 @@
 
     // ---------- Actualización automática desde internet ----------
     function obtenerUrlActualizacion() {
-        let guardada = '';
-        try { guardada = localStorage.getItem(UPD_KEY) || ''; } catch (e) {}
-        return guardada || URL_ACTUALIZACION;
+        // Se usa siempre catalogo.txt. Se borra cualquier link viejo (Dropbox, etc.) guardado en este teléfono.
+        try { localStorage.removeItem(UPD_KEY); } catch (e) {}
+        return URL_ACTUALIZACION;
     }
 
     // Convierte links para compartir en links de descarga directa
