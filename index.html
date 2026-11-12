@@ -301,9 +301,9 @@
     // ==========================================
     // CONFIGURACIÓN
     // ==========================================
-    // Link del TXT en internet (OneDrive, Dropbox, GitHub...). Si lo completás acá,
-    // TODOS los que abran el catálogo lo van a usar para buscar actualizaciones.
-    const URL_ACTUALIZACION = "https://www.dropbox.com/scl/fi/8btmg616j8wwfev3zk8fr/catalogo_fragancias_onedrive.txt?rlkey=prtrv6yrujfs2n5neg7ifkd3u&st=k4b90t6v&dl=0";
+    // Archivo con la lista y los precios. Está en el mismo sitio que la página (catalogo.txt en GitHub),
+    // así no depende de Dropbox ni de otros dominios. Para actualizar: reemplazá catalogo.txt en GitHub.
+    const URL_ACTUALIZACION = "catalogo.txt";
     const UPD_KEY = 'catalogoFraganciasOnline_url';
     const WSP_KEY = 'catalogoFraganciasOnline_wsp';
     const WSP_POR_DEFECTO = "5492216418078";
@@ -1036,14 +1036,14 @@
             return;
         }
         const url = document.getElementById('cfgUrl').value.trim();
-        if (url && !/^https:\/\//i.test(url)) {
+        if (url && url !== URL_ACTUALIZACION && !/^https:\/\//i.test(url)) {
             alert('El link de actualización tiene que empezar con https://');
             return;
         }
         numeroWhatsApp = num;
         try {
             localStorage.setItem(WSP_KEY, num);
-            if (url) localStorage.setItem(UPD_KEY, url); else localStorage.removeItem(UPD_KEY);
+            if (url && url !== URL_ACTUALIZACION) localStorage.setItem(UPD_KEY, url); else localStorage.removeItem(UPD_KEY);
         } catch (e) {}
         cerrarConfig();
         mostrarEstado('✔ Configuración guardada.', 'ok');
@@ -1212,7 +1212,7 @@
                 if (manual) mostrarEstado('No se pudo leer el TXT desde ese link. Revisá que sea público (cualquiera con el link puede ver) o que tengas internet. (' + (ultimoError ? ultimoError.message : 'error') + ')', 'error');
                 return;
             }
-            fetch(candidatas[i], { cache: 'no-store', signal: controlador ? controlador.signal : undefined })
+            fetch(candidatas[i] + (/^https?:/i.test(candidatas[i]) ? '' : (candidatas[i].indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now()), { cache: 'no-store', signal: controlador ? controlador.signal : undefined })
                 .then(function (r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
                     return r.arrayBuffer();
@@ -1278,7 +1278,7 @@
         const blob = new Blob(['\uFEFF' + contenido], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'catalogo_fragancias.txt';
+        a.download = 'catalogo.txt';
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
