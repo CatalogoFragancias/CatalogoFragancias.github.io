@@ -135,7 +135,7 @@
         @keyframes rebote { 0%, 100% { margin-top: 0; } 50% { margin-top: -6px; } }
         .aviso-mayorista { margin-top: 14px; padding: 12px; border: 1px dashed #8b7355; border-radius: 8px; background: rgba(139,115,85,0.08); font-size: 0.82rem; color: #4a4a4a; line-height: 1.4; text-align: center; }
         .aviso-mayorista strong { display: block; color: #8b7355; margin-bottom: 3px; }
-        .btn-mayorista { display: block; margin: 10px auto 0; padding: 9px 14px; border: none; border-radius: 6px; background: #8b7355; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; cursor: pointer; }
+        .btn-mayorista { display: block; width: fit-content; text-decoration: none; margin: 10px auto 0; padding: 9px 14px; border: none; border-radius: 6px; background: #8b7355; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -227,8 +227,8 @@
             </div>
             <div class="aviso-mayorista" id="avisoMayorista" style="display:none;">
                 <strong>¿Comprás por cantidad?</strong>
-                Con 10 o más unidades tenés precios mayoristas. Pedinos el catálogo de mayoristas.
-                <button type="button" class="btn-mayorista" onclick="pedirMayorista()">Pedir catálogo mayorista</button>
+                Con 10 o más unidades tenés precios mayoristas.
+                <a class="btn-mayorista" href="https://catalogofragancias.github.io/mayorista/" onclick="return abrirMayorista(this.href)">Ingresá al catálogo mayorista</a>
             </div>
         </div>
 
@@ -1429,12 +1429,15 @@
     // Cantidad a partir de la cual se ofrece el catálogo mayorista
     const UMBRAL_MAYORISTA = 10;
 
-    function pedirMayorista() {
-        const cant = cart.reduce((suma, item) => suma + item.cantidad, 0);
-        const texto = '¡Hola! Estoy armando un pedido de ' + cant + ' unidades y quiero que me pasen el catálogo de mayoristas.';
-        const url = 'https://wa.me/' + numeroWhatsApp + '?text=' + encodeURIComponent(texto);
-        const ventana = window.open(url, '_blank');
-        if (!ventana) window.location.href = url;
+    // Abre el catálogo mayorista (si el navegador bloquea pestañas nuevas, lo abre en la misma)
+    function abrirMayorista(url) {
+        guardarCarrito();
+        try {
+            const w = window.open(url, '_blank');
+            if (w) return false;
+        } catch (e) {}
+        window.location.href = url;
+        return false;
     }
 
     function toggleCartModal() {
