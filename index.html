@@ -155,7 +155,7 @@
         .promo-item { flex: 1 1 120px; min-width: 0; box-sizing: border-box; border: 1.5px solid #8b7355; border-radius: 10px; padding: 10px 12px; background: #ece8df; text-align: center; font-family: 'Montserrat', sans-serif; }
         .promo-item.destacada { background: #8b7355; color: #fff; }
         .promo-item .promo-precio { display: block; font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
-        .promo-item .promo-desc { display: block; margin-top: 2px; font-size: 0.66rem; letter-spacing: 0.5px; text-transform: uppercase; }
+        .promo-item .promo-desc { display: block; margin-bottom: 3px; font-size: 0.66rem; letter-spacing: 0.5px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -1214,8 +1214,8 @@
         const el = document.getElementById('promoPrecios');
         if (!el) return;
         el.innerHTML =
-            '<div class="promo-item"><span class="promo-precio">' + formateadorMoneda.format(PRECIO_1) + '</span><span class="promo-desc">1 perfume</span></div>' +
-            '<div class="promo-item destacada"><span class="promo-precio">' + formateadorMoneda.format(PRECIO_2) + '</span><span class="promo-desc">Promo · 2 perfumes</span></div>';
+            '<div class="promo-item"><span class="promo-desc">1 perfume<br><b>&nbsp;</b></span><span class="promo-precio">' + formateadorMoneda.format(PRECIO_1) + '</span></div>' +
+            '<div class="promo-item destacada"><span class="promo-desc">2 perfumes<br><b>Promo</b></span><span class="promo-precio">' + formateadorMoneda.format(PRECIO_2) + '</span></div>';
     }
 
     function fijarPrecios(p1, p2, guardar) {
