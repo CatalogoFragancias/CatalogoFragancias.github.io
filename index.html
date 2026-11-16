@@ -151,6 +151,11 @@
         .aviso-mayorista { margin-top: 14px; padding: 12px; border: 1px dashed #8b7355; border-radius: 8px; background: rgba(139,115,85,0.08); font-size: 0.82rem; color: #4a4a4a; line-height: 1.4; text-align: center; }
         .aviso-mayorista strong { display: block; color: #8b7355; margin-bottom: 3px; }
         .btn-mayorista { display: block; width: fit-content; text-decoration: none; margin: 10px auto 0; padding: 9px 14px; border: none; border-radius: 6px; background: #8b7355; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; cursor: pointer; }
+        .promo-precios { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 14px auto 4px; max-width: 480px; }
+        .promo-item { flex: 1 1 120px; min-width: 0; box-sizing: border-box; border: 1.5px solid #8b7355; border-radius: 10px; padding: 10px 12px; background: #ece8df; text-align: center; font-family: 'Montserrat', sans-serif; }
+        .promo-item.destacada { background: #8b7355; color: #fff; }
+        .promo-item .promo-precio { display: block; font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
+        .promo-item .promo-desc { display: block; margin-top: 2px; font-size: 0.66rem; letter-spacing: 0.5px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -173,6 +178,7 @@
     <div class="header-title">
         <h1>Fragancias</h1>
         <h3>Fragancias Premium</h3>
+        <div class="promo-precios" id="promoPrecios" role="note"></div>
         <p class="aviso-fotos">Las fotos son ilustrativas. El packaging difiere de lo que se ve en las imágenes.</p>
     </div>
     
@@ -1204,8 +1210,17 @@
         return lista;
     }
 
+    function pintarPromo() {
+        const el = document.getElementById('promoPrecios');
+        if (!el) return;
+        el.innerHTML =
+            '<div class="promo-item"><span class="promo-precio">' + formateadorMoneda.format(PRECIO_1) + '</span><span class="promo-desc">1 perfume</span></div>' +
+            '<div class="promo-item destacada"><span class="promo-precio">' + formateadorMoneda.format(PRECIO_2) + '</span><span class="promo-desc">Promo · 2 perfumes</span></div>';
+    }
+
     function fijarPrecios(p1, p2, guardar) {
         PRECIO_1 = p1; PRECIO_2 = p2;
+        pintarPromo();
         if (guardar) { try { localStorage.setItem(PRECIOS_KEY, JSON.stringify({ p1: p1, p2: p2 })); } catch (e) {} }
         actualizarUI();
     }
@@ -1555,6 +1570,7 @@
     // Inicializar
     setTimeout(function () { buscarActualizacion(false); }, 300);
     restaurarCarrito();
+    pintarPromo();
     actualizarUI();
     renderTable(sortedData);
 </script>
